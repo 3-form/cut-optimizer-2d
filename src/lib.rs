@@ -903,8 +903,8 @@ impl Optimizer {
         let mut result_units = Population::new(units)
             .set_size(population_size)
             .set_rand_seed(self.random_seed)
-            .set_breed_factor(0.7)
-            .set_survival_factor(0.8)
+            .set_breed_factor(0.5)
+            .set_survival_factor(0.6)
             .epochs(100, progress_callback)
             .finish();
 
