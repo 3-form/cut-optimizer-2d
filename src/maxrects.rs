@@ -1,6 +1,7 @@
 /// Implementation of the Maximal Rectangles Algorithms for bin packing.
 /// [A Thousand Ways to Pack the Bin](http://pds25.egloos.com/pds/201504/21/98/RectangleBinPack.pdf)
 use super::*;
+use crate::guillotine::RotateCutPieceHeuristic;
 
 use rand::distributions::{Distribution, Standard};
 use rand::prelude::*;
@@ -42,7 +43,7 @@ pub(crate) struct MaxRectsBin {
 }
 
 impl Bin for MaxRectsBin {
-    type Heuristic = FreeRectChoiceHeuristic;
+    type Heuristic = (FreeRectChoiceHeuristic, RotateCutPieceHeuristic);
 
     fn new(
         width: usize,
@@ -126,11 +127,46 @@ impl Bin for MaxRectsBin {
 
     fn possible_heuristics() -> Vec<Self::Heuristic> {
         vec![
-            FreeRectChoiceHeuristic::BestShortSideFit,
-            FreeRectChoiceHeuristic::BestLongSideFit,
-            FreeRectChoiceHeuristic::BestAreaFit,
-            FreeRectChoiceHeuristic::BottomLeftRule,
-            FreeRectChoiceHeuristic::ContactPointRule,
+            (
+                FreeRectChoiceHeuristic::BestShortSideFit,
+                RotateCutPieceHeuristic::PreferUpright,
+            ),
+            (
+                FreeRectChoiceHeuristic::BestLongSideFit,
+                RotateCutPieceHeuristic::PreferUpright,
+            ),
+            (
+                FreeRectChoiceHeuristic::BestAreaFit,
+                RotateCutPieceHeuristic::PreferUpright,
+            ),
+            (
+                FreeRectChoiceHeuristic::BottomLeftRule,
+                RotateCutPieceHeuristic::PreferUpright,
+            ),
+            (
+                FreeRectChoiceHeuristic::ContactPointRule,
+                RotateCutPieceHeuristic::PreferUpright,
+            ),
+            (
+                FreeRectChoiceHeuristic::BestShortSideFit,
+                RotateCutPieceHeuristic::PreferRotated,
+            ),
+            (
+                FreeRectChoiceHeuristic::BestLongSideFit,
+                RotateCutPieceHeuristic::PreferRotated,
+            ),
+            (
+                FreeRectChoiceHeuristic::BestAreaFit,
+                RotateCutPieceHeuristic::PreferRotated,
+            ),
+            (
+                FreeRectChoiceHeuristic::BottomLeftRule,
+                RotateCutPieceHeuristic::PreferRotated,
+            ),
+            (
+                FreeRectChoiceHeuristic::ContactPointRule,
+                RotateCutPieceHeuristic::PreferRotated,
+            ),
         ]
     }
 
@@ -139,7 +175,7 @@ impl Bin for MaxRectsBin {
         cut_piece: &CutPieceWithId,
         heuristic: &Self::Heuristic,
     ) -> bool {
-        self.insert_with_heuristics(cut_piece, *heuristic)
+        self.insert_with_heuristics(cut_piece, heuristic.0, heuristic.1)
     }
 
     fn insert_cut_piece_random_heuristic<R>(
@@ -150,7 +186,14 @@ impl Bin for MaxRectsBin {
     where
         R: Rng + ?Sized,
     {
-        self.insert_with_heuristics(cut_piece, rng.gen())
+        self.insert_cut_piece_with_heuristic(cut_piece, &rng.gen())
+    }
+
+    fn matches_stock_piece(&self, stock_piece: &StockPiece) -> bool {
+        self.width == stock_piece.width
+            && self.length == stock_piece.length
+            && self.pattern_direction == stock_piece.pattern_direction
+            && self.price == stock_piece.price
     }
 }
 
@@ -160,9 +203,12 @@ impl MaxRectsBin {
         &mut self,
         cut_piece: &CutPieceWithId,
         rect_choice: FreeRectChoiceHeuristic,
+        rotate_preference: RotateCutPieceHeuristic,
     ) -> bool {
+        let prefer_rotated = rotate_preference == RotateCutPieceHeuristic::PreferRotated;
+
         if let Some((best_rect, is_rotated)) =
-            self.find_placement_for_cut_piece(cut_piece, rect_choice)
+            self.find_placement_for_cut_piece(cut_piece, rect_choice, prefer_rotated)
         {
             for i in (0..self.free_rects.len()).rev() {
                 self.split_free_rect(i, &best_rect);
@@ -194,30 +240,39 @@ impl MaxRectsBin {
         &self,
         cut_piece: &CutPieceWithId,
         rect_choice: FreeRectChoiceHeuristic,
+        prefer_rotated: bool,
     ) -> Option<(Rect, bool)> {
         match rect_choice {
-            FreeRectChoiceHeuristic::BottomLeftRule => self.find_placement_bottom_left(cut_piece),
+            FreeRectChoiceHeuristic::BottomLeftRule => {
+                self.find_placement_bottom_left(cut_piece, prefer_rotated)
+            }
             FreeRectChoiceHeuristic::BestShortSideFit => {
-                self.find_placement_best_short_side_fit(cut_piece)
+                self.find_placement_best_short_side_fit(cut_piece, prefer_rotated)
             }
             FreeRectChoiceHeuristic::BestLongSideFit => {
-                self.find_placement_best_long_side_fit(cut_piece)
+                self.find_placement_best_long_side_fit(cut_piece, prefer_rotated)
             }
-            FreeRectChoiceHeuristic::BestAreaFit => self.find_placement_best_area_fit(cut_piece),
+            FreeRectChoiceHeuristic::BestAreaFit => {
+                self.find_placement_best_area_fit(cut_piece, prefer_rotated)
+            }
             FreeRectChoiceHeuristic::ContactPointRule => {
-                self.find_placement_contact_point(cut_piece)
+                self.find_placement_contact_point(cut_piece, prefer_rotated)
             }
         }
     }
 
-    fn find_placement_bottom_left(&self, cut_piece: &CutPieceWithId) -> Option<(Rect, bool)> {
+    fn find_placement_bottom_left(
+        &self,
+        cut_piece: &CutPieceWithId,
+        prefer_rotated: bool,
+    ) -> Option<(Rect, bool)> {
         let mut best_rect = Rect::default();
         let mut best_y = std::usize::MAX;
         let mut best_x = std::usize::MAX;
         let mut best_fit = Fit::None;
 
         for free_rect in &self.free_rects {
-            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece);
+            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece, prefer_rotated);
             if fit.is_upright() {
                 let top_side_y = free_rect.y + cut_piece.length;
                 if top_side_y < best_y || (top_side_y == best_y && free_rect.x < best_x) {
@@ -253,6 +308,7 @@ impl MaxRectsBin {
     fn find_placement_best_short_side_fit(
         &self,
         cut_piece: &CutPieceWithId,
+        prefer_rotated: bool,
     ) -> Option<(Rect, bool)> {
         let mut best_rect = Rect::default();
         let mut best_short_side_fit = std::usize::MAX;
@@ -260,7 +316,7 @@ impl MaxRectsBin {
         let mut best_fit = Fit::None;
 
         for free_rect in &self.free_rects {
-            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece);
+            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece, prefer_rotated);
             if fit.is_upright() {
                 let leftover_horiz =
                     (free_rect.width as isize - cut_piece.width as isize).abs() as usize;
@@ -312,6 +368,7 @@ impl MaxRectsBin {
     fn find_placement_best_long_side_fit(
         &self,
         cut_piece: &CutPieceWithId,
+        prefer_rotated: bool,
     ) -> Option<(Rect, bool)> {
         let mut best_rect = Rect::default();
         let mut best_short_side_fit = std::usize::MAX;
@@ -319,7 +376,7 @@ impl MaxRectsBin {
         let mut best_fit = Fit::None;
 
         for free_rect in &self.free_rects {
-            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece);
+            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece, prefer_rotated);
             if fit.is_upright() {
                 let leftover_horiz =
                     (free_rect.width as isize - cut_piece.width as isize).abs() as usize;
@@ -368,7 +425,11 @@ impl MaxRectsBin {
         }
     }
 
-    fn find_placement_best_area_fit(&self, cut_piece: &CutPieceWithId) -> Option<(Rect, bool)> {
+    fn find_placement_best_area_fit(
+        &self,
+        cut_piece: &CutPieceWithId,
+        prefer_rotated: bool,
+    ) -> Option<(Rect, bool)> {
         let mut best_rect = Rect::default();
         let mut best_area_fit = std::u64::MAX;
         let mut best_short_side_fit = std::u64::MAX;
@@ -384,7 +445,7 @@ impl MaxRectsBin {
 
             let area_fit = free_rect_area - cut_piece_area;
 
-            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece);
+            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece, prefer_rotated);
             if fit.is_upright() {
                 let leftover_horiz = (free_rect.width as i64 - cut_piece.width as i64).abs() as u64;
                 let leftover_vert =
@@ -429,13 +490,17 @@ impl MaxRectsBin {
         }
     }
 
-    fn find_placement_contact_point(&self, cut_piece: &CutPieceWithId) -> Option<(Rect, bool)> {
+    fn find_placement_contact_point(
+        &self,
+        cut_piece: &CutPieceWithId,
+        prefer_rotated: bool,
+    ) -> Option<(Rect, bool)> {
         let mut best_rect = Rect::default();
         let mut best_contact_score = 0;
         let mut best_fit = Fit::None;
 
         for free_rect in &self.free_rects {
-            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece);
+            let fit = free_rect.fit_cut_piece(self.pattern_direction, cut_piece, prefer_rotated);
             if fit.is_upright() {
                 let score = self.contact_point_score(
                     free_rect.x,
@@ -620,15 +685,15 @@ impl MaxRectsBin {
     }
 }
 
-impl Into<ResultStockPiece> for MaxRectsBin {
-    fn into(mut self) -> ResultStockPiece {
-        self.make_free_rects_disjoint();
-        ResultStockPiece {
-            width: self.width,
-            length: self.length,
-            pattern_direction: self.pattern_direction,
-            cut_pieces: self.cut_pieces.drain(..).map(Into::into).collect(),
-            waste_pieces: self.free_rects,
+impl From<MaxRectsBin> for ResultStockPiece {
+    fn from(mut bin: MaxRectsBin) -> Self {
+        bin.make_free_rects_disjoint();
+        Self {
+            width: bin.width,
+            length: bin.length,
+            pattern_direction: bin.pattern_direction,
+            cut_pieces: bin.cut_pieces.into_iter().map(Into::into).collect(),
+            waste_pieces: bin.free_rects,
         }
     }
 }
@@ -639,5 +704,153 @@ fn common_interval_length(start1: usize, end1: usize, start2: usize, end2: usize
         0
     } else {
         cmp::min(end1, end2) - cmp::max(start1, start2)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn remove_cut_pieces() {
+        let cut_pieces = &[
+            CutPieceWithId {
+                id: 0,
+                external_id: None,
+                width: 10,
+                length: 10,
+                pattern_direction: PatternDirection::None,
+                can_rotate: false,
+            },
+            CutPieceWithId {
+                id: 1,
+                external_id: None,
+                width: 10,
+                length: 10,
+                pattern_direction: PatternDirection::None,
+                can_rotate: false,
+            },
+            CutPieceWithId {
+                id: 2,
+                external_id: None,
+                width: 10,
+                length: 10,
+                pattern_direction: PatternDirection::None,
+                can_rotate: false,
+            },
+            CutPieceWithId {
+                id: 3,
+                external_id: None,
+                width: 10,
+                length: 10,
+                pattern_direction: PatternDirection::None,
+                can_rotate: false,
+            },
+        ];
+
+        let heuristic = MaxRectsBin::possible_heuristics()[0];
+
+        let mut bin = MaxRectsBin::new(48, 96, 1, PatternDirection::None, 0);
+        cut_pieces.iter().for_each(|cut_piece| {
+            bin.insert_cut_piece_with_heuristic(cut_piece, &heuristic);
+        });
+
+        assert_eq!(bin.cut_pieces().len(), 4);
+
+        let cut_pieces_to_remove = [
+            UsedCutPiece {
+                id: 1,
+                external_id: None,
+                rect: Default::default(),
+                pattern_direction: PatternDirection::None,
+                is_rotated: false,
+                can_rotate: false,
+            },
+            UsedCutPiece {
+                id: 3,
+                external_id: None,
+                rect: Default::default(),
+                pattern_direction: PatternDirection::None,
+                is_rotated: false,
+                can_rotate: false,
+            },
+        ];
+
+        bin.remove_cut_pieces(cut_pieces_to_remove.iter());
+
+        assert_eq!(bin.cut_pieces().len(), 2);
+        assert_eq!(bin.cut_pieces().next().unwrap().id, 0);
+        assert_eq!(bin.cut_pieces().nth(1).unwrap().id, 2);
+    }
+
+    #[test]
+    fn bin_matches_stock_piece() {
+        let bin = MaxRectsBin {
+            width: 48,
+            length: 96,
+            blade_width: 1,
+            pattern_direction: PatternDirection::None,
+            cut_pieces: Default::default(),
+            free_rects: Default::default(),
+            price: 0,
+        };
+
+        let stock_piece = StockPiece {
+            width: 48,
+            length: 96,
+            pattern_direction: PatternDirection::None,
+            price: 0,
+            quantity: Some(20),
+        };
+
+        assert!(bin.matches_stock_piece(&stock_piece));
+    }
+
+    #[test]
+    fn bin_does_not_match_stock_pieces() {
+        let bin = MaxRectsBin {
+            width: 48,
+            length: 96,
+            blade_width: 1,
+            pattern_direction: PatternDirection::None,
+            cut_pieces: Default::default(),
+            free_rects: Default::default(),
+            price: 0,
+        };
+
+        let stock_pieces = &[
+            StockPiece {
+                width: 10,
+                length: 96,
+                pattern_direction: PatternDirection::None,
+                price: 0,
+                quantity: Some(20),
+            },
+            StockPiece {
+                width: 48,
+                length: 10,
+                pattern_direction: PatternDirection::None,
+                price: 0,
+                quantity: Some(20),
+            },
+            StockPiece {
+                width: 48,
+                length: 96,
+                pattern_direction: PatternDirection::ParallelToLength,
+                price: 0,
+                quantity: Some(20),
+            },
+            StockPiece {
+                width: 48,
+                length: 96,
+                pattern_direction: PatternDirection::None,
+                price: 10,
+                quantity: Some(20),
+            },
+        ];
+
+        stock_pieces
+            .iter()
+            .for_each(|stock_piece| assert!(!bin.matches_stock_piece(&stock_piece)))
     }
 }
