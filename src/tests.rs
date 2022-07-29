@@ -19,6 +19,7 @@ static STOCK_PIECES: &[StockPiece] = &[
 
 static CUT_PIECES: &[CutPiece] = &[
     CutPiece {
+        quantity: 1,
         external_id: Some(1),
         width: 10,
         length: 30,
@@ -26,6 +27,7 @@ static CUT_PIECES: &[CutPiece] = &[
         can_rotate: true,
     },
     CutPiece {
+        quantity: 1,
         external_id: Some(2),
         width: 20,
         length: 30,
@@ -33,6 +35,7 @@ static CUT_PIECES: &[CutPiece] = &[
         can_rotate: true,
     },
     CutPiece {
+        quantity: 1,
         external_id: Some(3),
         width: 30,
         length: 30,
@@ -40,6 +43,7 @@ static CUT_PIECES: &[CutPiece] = &[
         can_rotate: true,
     },
     CutPiece {
+        quantity: 1,
         external_id: Some(4),
         width: 40,
         length: 30,
@@ -122,6 +126,7 @@ fn guillotine_rotate() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -164,6 +169,7 @@ fn guillotine_rotate_pattern() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -206,6 +212,7 @@ fn guillotine_non_fitting_cut_piece_can_rotate() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -233,6 +240,7 @@ fn guillotine_non_fitting_cut_piece_no_rotate() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -260,6 +268,7 @@ fn guillotine_non_fitting_cut_piece_no_rotate_pattern() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -287,6 +296,7 @@ fn guillotine_non_fitting_cut_piece_mismatched_pattern() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -308,6 +318,7 @@ fn guillotine_no_allow_mixed_stock_sizes() {
     let solution = Optimizer::new()
         .add_stock_pieces(STOCK_PIECES.iter().cloned().collect::<Vec<_>>())
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 48,
             length: 96,
@@ -315,6 +326,7 @@ fn guillotine_no_allow_mixed_stock_sizes() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(2),
             width: 48,
             length: 120,
@@ -356,6 +368,7 @@ fn guillotine_different_stock_piece_prices() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 48,
             length: 50,
@@ -363,6 +376,7 @@ fn guillotine_different_stock_piece_prices() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(2),
             width: 48,
             length: 50,
@@ -403,6 +417,7 @@ fn guillotine_same_stock_piece_prices() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 48,
             length: 50,
@@ -410,6 +425,7 @@ fn guillotine_same_stock_piece_prices() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(2),
             width: 48,
             length: 50,
@@ -439,13 +455,7 @@ fn guillotine_stock_quantity_too_low() {
             quantity: Some(1),
         })
         .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 48,
-            length: 96,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: None,
             width: 48,
             length: 96,
@@ -463,7 +473,33 @@ fn guillotine_stock_quantity_too_low() {
 }
 
 #[test]
-fn guillotine_stock_quantity() {
+fn guillotine_stock_quantity_1() {
+    let solution = Optimizer::new()
+        .add_stock_piece(StockPiece {
+            width: 48,
+            length: 96,
+            pattern_direction: PatternDirection::None,
+            price: 0,
+            quantity: Some(1),
+        })
+        .add_cut_piece(CutPiece {
+            quantity: 1,
+            external_id: None,
+            width: 10,
+            length: 96,
+            pattern_direction: PatternDirection::None,
+            can_rotate: false,
+        })
+        .set_cut_width(1)
+        .set_random_seed(1)
+        .optimize_guillotine(|_| {})
+        .unwrap();
+
+    sanity_check_solution(&solution, 1);
+}
+
+#[test]
+fn guillotine_stock_quantity_2() {
     let solution = Optimizer::new()
         .add_stock_piece(StockPiece {
             width: 48,
@@ -473,15 +509,9 @@ fn guillotine_stock_quantity() {
             quantity: Some(2),
         })
         .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: None,
-            width: 48,
-            length: 96,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 48,
+            width: 10,
             length: 96,
             pattern_direction: PatternDirection::None,
             can_rotate: false,
@@ -512,6 +542,7 @@ fn guillotine_stock_quantity_multiple() {
             quantity: Some(1),
         })
         .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: None,
             width: 48,
             length: 96,
@@ -519,13 +550,7 @@ fn guillotine_stock_quantity_multiple() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 48,
-            length: 96,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: None,
             width: 64,
             length: 192,
@@ -551,6 +576,7 @@ fn guillotine_one_stock_piece_several_cut_pieces() {
             quantity: Some(1),
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: None,
             width: 8,
             length: 96,
@@ -558,6 +584,7 @@ fn guillotine_one_stock_piece_several_cut_pieces() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: None,
             width: 40,
             length: 10,
@@ -565,13 +592,7 @@ fn guillotine_one_stock_piece_several_cut_pieces() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 40,
-            length: 10,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
+            quantity: 4,
             external_id: None,
             width: 20,
             length: 20,
@@ -579,27 +600,7 @@ fn guillotine_one_stock_piece_several_cut_pieces() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 20,
-            length: 20,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 20,
-            length: 20,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 20,
-            length: 20,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: None,
             width: 40,
             length: 36,
@@ -632,13 +633,7 @@ fn guillotine_stock_duplicate_cut_piece() {
             quantity: Some(1),
         })
         .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 48,
-            length: 96,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: None,
             width: 48,
             length: 96,
@@ -666,15 +661,14 @@ fn guillotine_32_cut_pieces_on_1_stock_piece() {
 
     let num_cut_pieces = 32;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 10,
-            length: 10,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 10,
+        length: 10,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -703,15 +697,14 @@ fn guillotine_32_cut_pieces_on_2_stock_piece_zero_cut_width() {
 
     let num_cut_pieces = 32;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 12,
-            length: 12,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 12,
+        length: 12,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(0)
@@ -740,15 +733,14 @@ fn guillotine_32_cut_pieces_on_2_stock_piece() {
 
     let num_cut_pieces = 32;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 12,
-            length: 12,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 12,
+        length: 12,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -775,15 +767,14 @@ fn guillotine_64_cut_pieces_on_2_stock_pieces() {
 
     let num_cut_pieces = 64;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 10,
-            length: 10,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 10,
+        length: 10,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -835,19 +826,18 @@ fn guillotine_random_cut_pieces() {
 
     let num_cut_pieces = 30;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: rng.gen_range(1..=48),
-            length: rng.gen_range(1..=120),
-            pattern_direction: if rng.gen_bool(0.5) {
-                PatternDirection::ParallelToWidth
-            } else {
-                PatternDirection::ParallelToLength
-            },
-            can_rotate: true,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: rng.gen_range(1..=48),
+        length: rng.gen_range(1..=120),
+        pattern_direction: if rng.gen_bool(0.5) {
+            PatternDirection::ParallelToWidth
+        } else {
+            PatternDirection::ParallelToLength
+        },
+        can_rotate: true,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -887,6 +877,7 @@ fn nested_rotate() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -929,6 +920,7 @@ fn nested_rotate_pattern() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -971,6 +963,7 @@ fn nested_non_fitting_cut_piece_can_rotate() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -998,6 +991,7 @@ fn nested_non_fitting_cut_piece_no_rotate() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -1025,6 +1019,7 @@ fn nested_non_fitting_cut_piece_no_rotate_pattern() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -1052,6 +1047,7 @@ fn nested_non_fitting_cut_piece_mismatched_pattern() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 11,
             length: 10,
@@ -1073,6 +1069,7 @@ fn nested_no_allow_mixed_stock_sizes() {
     let solution = Optimizer::new()
         .add_stock_pieces(STOCK_PIECES.iter().cloned().collect::<Vec<_>>())
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(1),
             width: 48,
             length: 96,
@@ -1080,6 +1077,7 @@ fn nested_no_allow_mixed_stock_sizes() {
             can_rotate: false,
         })
         .add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(2),
             width: 48,
             length: 120,
@@ -1121,14 +1119,8 @@ fn nested_different_stock_piece_prices() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: Some(1),
-            width: 48,
-            length: 50,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
-            external_id: Some(2),
             width: 48,
             length: 50,
             pattern_direction: PatternDirection::None,
@@ -1168,14 +1160,8 @@ fn nested_same_stock_piece_prices() {
             quantity: None,
         })
         .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: Some(1),
-            width: 48,
-            length: 50,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
-            external_id: Some(2),
             width: 48,
             length: 50,
             pattern_direction: PatternDirection::None,
@@ -1204,13 +1190,7 @@ fn nested_stock_quantity_too_low() {
             quantity: Some(1),
         })
         .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 48,
-            length: 96,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: None,
             width: 48,
             length: 96,
@@ -1228,7 +1208,33 @@ fn nested_stock_quantity_too_low() {
 }
 
 #[test]
-fn nested_stock_quantity_ok() {
+fn nested_stock_quantity_1() {
+    let solution = Optimizer::new()
+        .add_stock_piece(StockPiece {
+            width: 48,
+            length: 96,
+            pattern_direction: PatternDirection::None,
+            price: 0,
+            quantity: Some(1),
+        })
+        .add_cut_piece(CutPiece {
+            quantity: 1,
+            external_id: None,
+            width: 10,
+            length: 96,
+            pattern_direction: PatternDirection::None,
+            can_rotate: false,
+        })
+        .set_cut_width(1)
+        .set_random_seed(1)
+        .optimize_nested(|_| {})
+        .unwrap();
+
+    sanity_check_solution(&solution, 1);
+}
+
+#[test]
+fn nested_stock_quantity_2() {
     let solution = Optimizer::new()
         .add_stock_piece(StockPiece {
             width: 48,
@@ -1238,15 +1244,9 @@ fn nested_stock_quantity_ok() {
             quantity: Some(2),
         })
         .add_cut_piece(CutPiece {
+            quantity: 2,
             external_id: None,
-            width: 48,
-            length: 96,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        })
-        .add_cut_piece(CutPiece {
-            external_id: None,
-            width: 48,
+            width: 10,
             length: 96,
             pattern_direction: PatternDirection::None,
             can_rotate: false,
@@ -1272,15 +1272,14 @@ fn nested_32_cut_pieces_on_1_stock_piece() {
 
     let num_cut_pieces = 32;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 10,
-            length: 10,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 10,
+        length: 10,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -1309,15 +1308,14 @@ fn nested_32_cut_pieces_on_2_stock_piece_zero_cut_width() {
 
     let num_cut_pieces = 32;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 12,
-            length: 12,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 12,
+        length: 12,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(0)
@@ -1346,15 +1344,14 @@ fn nested_32_cut_pieces_on_2_stock_piece() {
 
     let num_cut_pieces = 32;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 12,
-            length: 12,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 12,
+        length: 12,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -1381,15 +1378,14 @@ fn nested_64_cut_pieces_on_2_stock_pieces() {
 
     let num_cut_pieces = 64;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 10,
-            length: 10,
-            pattern_direction: PatternDirection::None,
-            can_rotate: false,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: 10,
+        length: 10,
+        pattern_direction: PatternDirection::None,
+        can_rotate: false,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -1441,19 +1437,18 @@ fn nested_random_cut_pieces() {
 
     let num_cut_pieces = 30;
 
-    for i in 0..num_cut_pieces {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: rng.gen_range(1..=48),
-            length: rng.gen_range(1..=120),
-            pattern_direction: if rng.gen_bool(0.5) {
-                PatternDirection::ParallelToWidth
-            } else {
-                PatternDirection::ParallelToLength
-            },
-            can_rotate: true,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: num_cut_pieces,
+        external_id: Some(1),
+        width: rng.gen_range(1..=48),
+        length: rng.gen_range(1..=120),
+        pattern_direction: if rng.gen_bool(0.5) {
+            PatternDirection::ParallelToWidth
+        } else {
+            PatternDirection::ParallelToLength
+        },
+        can_rotate: true,
+    });
 
     let solution = optimizer
         .set_cut_width(1)
@@ -1552,15 +1547,14 @@ fn guillotine_rotate_cut_pieces() {
         .set_random_seed(1)
         .allow_mixed_stock_sizes(false);
 
-    for i in 0..16 {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 18,
-            length: 24,
-            pattern_direction: PatternDirection::None,
-            can_rotate: true,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: 16,
+        external_id: Some(1),
+        width: 18,
+        length: 24,
+        pattern_direction: PatternDirection::None,
+        can_rotate: true,
+    });
 
     let result = optimizer.optimize_guillotine(|_| {});
 
@@ -1593,15 +1587,14 @@ fn nested_rotate_cut_pieces() {
         .set_random_seed(1)
         .allow_mixed_stock_sizes(false);
 
-    for i in 0..16 {
-        optimizer.add_cut_piece(CutPiece {
-            external_id: Some(i),
-            width: 18,
-            length: 24,
-            pattern_direction: PatternDirection::None,
-            can_rotate: true,
-        });
-    }
+    optimizer.add_cut_piece(CutPiece {
+        quantity: 16,
+        external_id: Some(1),
+        width: 18,
+        length: 24,
+        pattern_direction: PatternDirection::None,
+        can_rotate: true,
+    });
 
     let result = optimizer.optimize_guillotine(|_| {});
 
@@ -1610,4 +1603,144 @@ fn nested_rotate_cut_pieces() {
         assert_eq!(solution.stock_pieces.len(), 2);
         assert_eq!(solution.stock_pieces[0].length, 96);
     }
+}
+
+#[test]
+fn pighetti_github_issue_12() {
+    let mut optimizer = Optimizer::new();
+
+    let plywood = StockPiece {
+        quantity: Some(1),
+        length: 2440,
+        width: 1220,
+        pattern_direction: PatternDirection::ParallelToLength,
+        price: 130,
+    };
+
+    let cut_piece_a = CutPiece {
+        quantity: 12,
+        external_id: Some(1),
+        length: 775,
+        width: 150,
+        can_rotate: false,
+        pattern_direction: PatternDirection::ParallelToLength,
+    };
+
+    let cut_piece_b = CutPiece {
+        quantity: 25,
+        external_id: Some(1),
+        length: 450,
+        width: 100,
+        can_rotate: false,
+        pattern_direction: PatternDirection::ParallelToLength,
+    };
+
+    optimizer.add_stock_piece(plywood);
+    optimizer.add_cut_piece(cut_piece_a);
+    optimizer.add_cut_piece(cut_piece_b);
+    optimizer.set_cut_width(2);
+    optimizer.set_random_seed(1);
+
+    let result = optimizer.optimize_guillotine(|_| {});
+
+    assert!(result.is_ok());
+    if let Ok(solution) = result {
+        assert_eq!(solution.stock_pieces.len(), 1);
+        sanity_check_solution(&solution, 37);
+    }
+}
+
+#[test]
+fn pighetti_github_issue_16() {
+    let plywood = StockPiece {
+        quantity: Some(2),
+        length: 2440,
+        width: 1220,
+        pattern_direction: PatternDirection::ParallelToLength,
+        price: 130,
+    };
+
+    let cut_piece_a = CutPiece {
+        quantity: 6,
+        external_id: Some(1),
+        length: 814,
+        width: 465,
+        can_rotate: false,
+        pattern_direction: PatternDirection::ParallelToLength,
+    };
+
+    let mut optimizer = Optimizer::new();
+    optimizer.add_stock_piece(plywood);
+    optimizer.add_cut_piece(cut_piece_a);
+    optimizer.set_cut_width(2);
+    optimizer.set_random_seed(1);
+
+    let result = optimizer.optimize_guillotine(|_| {});
+
+    assert!(result.is_ok());
+    if let Ok(solution) = result {
+        assert_eq!(solution.stock_pieces.len(), 2);
+        sanity_check_solution(&solution, 6);
+    }
+}
+
+#[test]
+fn deterministic_solutions() {
+    // Run the same optimization multiple times with the same random seed and
+    // check if the solution is the same each time.
+    let solutions: Vec<Solution> = (0..10)
+        .map(|_| {
+            let plywood = StockPiece {
+                quantity: Some(2),
+                length: 2440,
+                width: 1220,
+                pattern_direction: PatternDirection::ParallelToLength,
+                price: 130,
+            };
+
+            let cut_piece_a = CutPiece {
+                quantity: 6,
+                external_id: Some(1),
+                length: 814,
+                width: 465,
+                can_rotate: false,
+                pattern_direction: PatternDirection::ParallelToLength,
+            };
+
+            let mut optimizer = Optimizer::new();
+            optimizer.add_stock_piece(plywood);
+            optimizer.add_cut_piece(cut_piece_a);
+            optimizer.set_cut_width(2);
+            optimizer.set_random_seed(1);
+
+            optimizer.optimize_guillotine(|_| {}).unwrap()
+        })
+        .collect();
+
+    solutions.windows(2).for_each(|window| {
+        let solution1 = &window[0];
+        let solution2 = &window[1];
+        assert_eq!(solution1.fitness, solution2.fitness);
+        assert_eq!(solution1.price, solution2.price);
+        solution1
+            .stock_pieces
+            .iter()
+            .zip(solution2.stock_pieces.iter())
+            .for_each(|(stock_piece1, stock_piece2)| {
+                assert_eq!(stock_piece1.width, stock_piece2.width);
+                assert_eq!(stock_piece1.length, stock_piece2.length);
+                assert_eq!(
+                    stock_piece1.pattern_direction,
+                    stock_piece2.pattern_direction
+                );
+                assert_eq!(stock_piece1.price, stock_piece2.price);
+                stock_piece1
+                    .cut_pieces
+                    .iter()
+                    .zip(stock_piece2.cut_pieces.iter())
+                    .for_each(|(cut_piece1, cut_piece2)| {
+                        assert_eq!(cut_piece1, cut_piece2);
+                    });
+            })
+    });
 }

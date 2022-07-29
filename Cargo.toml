@@ -1,13 +1,13 @@
 [package]
 name = "cut-optimizer-2d"
-version = "0.3.0"
+version = "0.4.2"
 authors = ["Jason Rodney Hansen <jasonrodneyhansen@gmail.com>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 description = "A cut optimizer for cutting rectangular pieces from sheet goods"
 repository = "https://github.com/jasonrhansen/cut-optimizer-2d.git"
 keywords = ["cuts", "optimize", "optimization", "bin-packing", "bin-packer"]
-edition = "2018"
+edition = "2021"
 
 
 [features]
@@ -17,9 +17,10 @@ serialize=["serde"]
 rand = "0.8.3"
 fnv = "1.0"
 serde = { version = "1.0", features=["derive"], optional = true }
+smallvec = "1.8"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = { version = "0.3", features=["html_reports"] }
 
 [[bench]]
 name = 'optimizer'

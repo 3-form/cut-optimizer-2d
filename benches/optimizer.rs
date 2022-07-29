@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use criterion::*;
 use cut_optimizer_2d::*;
 use rand::prelude::*;
@@ -39,6 +41,7 @@ fn build_optimizer() -> Optimizer {
 
     for i in 0..num_cut_pieces {
         optimizer.add_cut_piece(CutPiece {
+            quantity: 1,
             external_id: Some(i),
             width: rng.gen_range(1..=48),
             length: rng.gen_range(1..=120),
@@ -55,22 +58,31 @@ fn build_optimizer() -> Optimizer {
 }
 
 pub fn benchmark_guillotine(c: &mut Criterion) {
-    c.bench_function("guillotine random cut pieces", |b| b.iter(|| {
-        let _ = build_optimizer()
-            .set_cut_width(1)
-            .set_random_seed(1)
-            .optimize_guillotine(|_| {});
-    }));
+    c.bench_function("guillotine random cut pieces", |b| {
+        b.iter(|| {
+            let _ = build_optimizer()
+                .set_cut_width(1)
+                .set_random_seed(1)
+                .optimize_guillotine(|_| {});
+        })
+    });
 }
 
 pub fn benchmark_maxrects(c: &mut Criterion) {
-    c.bench_function("maxrects random cut pieces", |b| b.iter(|| {
-        let _ = build_optimizer()
-            .set_cut_width(1)
-            .set_random_seed(1)
-            .optimize_guillotine(|_| {});
-    }));
+    c.bench_function("maxrects random cut pieces", |b| {
+        b.iter(|| {
+            let _ = build_optimizer()
+                .set_cut_width(1)
+                .set_random_seed(1)
+                .optimize_nested(|_| {});
+        })
+    });
 }
 
-criterion_group!(benches, benchmark_guillotine, benchmark_maxrects);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().sample_size(100).measurement_time(Duration::from_secs(20));
+    targets = benchmark_guillotine, benchmark_maxrects
+}
+
 criterion_main!(benches);
